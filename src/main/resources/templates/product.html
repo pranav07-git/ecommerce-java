@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${product.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <a th:href="@{/}">← Back to shop</a>
+    <div class="card" style="margin-top:.8rem">
+        <h1 th:text="${product.name}"></h1>
+        <p class="muted">Category: <span th:text="${product.category ?: '—'}"></span> · Sold by <span th:text="${product.seller.name}"></span></p>
+        <p class="price" style="font-size:1.6rem" th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 2)}"></p>
+        <p th:text="${product.description}"></p>
+        <p><span class="badge off" th:if="${product.stock == 0}">Out of stock</span>
+           <span th:if="${product.stock > 0}" th:text="${product.stock} + ' in stock'"></span></p>
+
+        <div sec:authorize="hasRole('BUYER')" th:if="${product.stock > 0}">
+            <form class="inline" th:action="@{/cart/add}" method="post">
+                <input type="hidden" name="productId" th:value="${product.id}">
+                <input type="number" name="qty" value="1" min="1" th:max="${product.stock}">
+                <button class="btn" type="submit">Add to cart</button>
+            </form>
+        </div>
+        <form sec:authorize="hasRole('BUYER')" class="inline" th:action="@{/wishlist/toggle/{id}(id=${product.id})}" method="post" style="margin-top:.6rem">
+            <button class="btn ghost" type="submit" th:text="${wished} ? '♥ Remove from wishlist' : '♡ Add to wishlist'"></button>
+        </form>
+        <p sec:authorize="!isAuthenticated()" class="muted"><a th:href="@{/login}">Log in</a> as a buyer to purchase.</p>
+    </div>
+</main>
+</body>
+</html>

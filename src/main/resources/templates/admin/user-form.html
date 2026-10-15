@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div class="card" style="max-width:520px">
+        <h2 th:text="${title}"></h2>
+        <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+        <form class="stack" th:action="@{${action}}" th:object="${form}" method="post">
+            <label>Name</label>
+            <input th:field="*{name}" required>
+            <div class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+            <label>Email</label>
+            <input th:field="*{email}" type="email" required>
+            <div class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            <label>Role</label>
+            <select th:field="*{role}">
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}"></option>
+            </select>
+            <label th:text="${creating} ? 'Password (min 6 characters)' : 'New password (leave blank to keep)'"></label>
+            <input th:field="*{password}" type="password" th:required="${creating}">
+            <label><input type="checkbox" th:field="*{enabled}" style="width:auto"> Account enabled</label>
+            <p><button class="btn" type="submit">Save</button> <a class="btn ghost" th:href="@{/admin#users}">Cancel</a></p>
+        </form>
+    </div>
+</main>
+</body>
+</html>

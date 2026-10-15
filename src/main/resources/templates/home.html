@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Shop')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1>Browse products</h1>
+    <form class="filters" th:action="@{/}" method="get">
+        <div><label>Search</label><input name="q" th:value="${q}" placeholder="Name or description"></div>
+        <div><label>Category</label>
+            <select name="category">
+                <option value="">All</option>
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${c}" th:selected="${c == category}"></option>
+            </select></div>
+        <div><label>Min price</label><input name="min" type="number" step="0.01" min="0" th:value="${min}" style="width:100px"></div>
+        <div><label>Max price</label><input name="max" type="number" step="0.01" min="0" th:value="${max}" style="width:100px"></div>
+        <div><label>Sort</label>
+            <select name="sort">
+                <option value="">Newest</option>
+                <option value="price_asc" th:selected="${sort == 'price_asc'}">Price: low to high</option>
+                <option value="price_desc" th:selected="${sort == 'price_desc'}">Price: high to low</option>
+                <option value="name" th:selected="${sort == 'name'}">Name</option>
+            </select></div>
+        <button class="btn" type="submit">Search</button>
+        <a class="btn ghost" th:href="@{/}">Reset</a>
+    </form>
+    <p class="muted" th:if="${products.isEmpty()}">No products match your search.</p>
+    <div class="grid">
+        <div class="product" th:each="p : ${products}">
+            <div class="img" th:style="${p.imageUrl != null} ? 'background-image:url(' + ${p.imageUrl} + ')' : ''" th:text="${p.imageUrl == null} ? '📦' : ''"></div>
+            <div class="body">
+                <a th:href="@{/products/{id}(id=${p.id})}"><strong th:text="${p.name}"></strong></a>
+                <span class="muted" th:text="${p.category}"></span>
+                <span class="price" th:text="'$' + ${#numbers.formatDecimal(p.price, 1, 2)}"></span>
+                <span class="badge off" th:if="${p.stock == 0}">Out of stock</span>
+                <span class="muted" th:if="${p.stock > 0}" th:text="${p.stock} + ' in stock'"></span>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

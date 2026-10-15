@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('My account')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1>Welcome, <span th:text="${user.name}"></span></h1>
+
+    <h2 id="history">Recently viewed</h2>
+    <p class="muted" th:if="${history.isEmpty()}">Nothing viewed yet. <a th:href="@{/}">Browse products</a></p>
+    <div class="table-wrap" th:unless="${history.isEmpty()}"><table>
+        <tr><th>Product</th><th>Price</th><th>Viewed</th><th></th></tr>
+        <tr th:each="h : ${history}">
+            <td><a th:href="@{/products/{id}(id=${h.product.id})}" th:text="${h.product.name}"></a></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(h.product.price, 1, 2)}"></td>
+            <td th:text="${#temporals.format(h.viewedAt, 'dd MMM HH:mm')}"></td>
+            <td>
+                <a class="btn sm" th:if="${h.product.active and h.product.stock > 0}" th:href="@{/products/{id}(id=${h.product.id})}">Buy</a>
+                <span class="badge off" th:if="${!h.product.active}">Unavailable</span>
+                <span class="badge off" th:if="${h.product.active and h.product.stock == 0}">Out of stock</span>
+            </td>
+        </tr>
+    </table></div>
+
+    <h2 id="orders">Order history</h2>
+    <p class="muted" th:if="${orders.isEmpty()}">No orders yet.</p>
+    <div class="table-wrap" th:unless="${orders.isEmpty()}"><table>
+        <tr><th>Order</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr>
+        <tr th:each="o : ${orders}">
+            <td th:text="'#' + ${o.id}"></td>
+            <td th:text="${#temporals.format(o.createdAt, 'dd MMM yyyy HH:mm')}"></td>
+            <td th:text="${o.items.size()}"></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(o.total, 1, 2)}"></td>
+            <td><span class="badge" th:classappend="${o.status}" th:text="${o.status}"></span></td>
+            <td><a class="btn sm ghost" th:href="@{/buyer/orders/{id}(id=${o.id})}">Track</a></td>
+        </tr>
+    </table></div>
+
+    <h2 id="wishlist">Wishlist</h2>
+    <p class="muted" th:if="${wishlist.isEmpty()}">Your wishlist is empty.</p>
+    <div class="table-wrap" th:unless="${wishlist.isEmpty()}"><table>
+        <tr><th>Product</th><th>Price when added</th><th>Current price</th><th>Change</th><th></th></tr>
+        <tr th:each="w : ${wishlist}">
+            <td><a th:href="@{/products/{id}(id=${w.product.id})}" th:text="${w.product.name}"></a>
+                <span class="badge off" th:if="${!w.product.active}">Unavailable</span></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(w.priceWhenAdded, 1, 2)}"></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(w.product.price, 1, 2)}"></td>
+            <td>
+                <span th:if="${w.priceChange.signum() == 0}" class="muted">no change</span>
+                <span th:if="${w.priceChange.signum() > 0}" class="up" th:text="'▲ +$' + ${#numbers.formatDecimal(w.priceChange, 1, 2)}"></span>
+                <span th:if="${w.priceChange.signum() < 0}" class="down" th:text="'▼ -$' + ${#numbers.formatDecimal(w.priceChange.negate(), 1, 2)}"></span>
+            </td>
+            <td><form class="inline" th:action="@{/wishlist/toggle/{id}(id=${w.product.id})}" method="post">
+                <input type="hidden" name="from" value="dashboard">
+                <button class="btn sm danger" type="submit">Remove</button></form></td>
+        </tr>
+    </table></div>
+
+    <h2 id="account">Account overview</h2>
+    <div class="two-col">
+        <div class="card">
+            <h3>Personal details</h3>
+            <form class="stack" th:action="@{/buyer/account}" method="post">
+                <label>Email</label><input th:value="${user.email}" disabled>
+                <label>Name</label><input name="name" th:value="${user.name}" required>
+                <label>Phone</label><input name="phone" th:value="${user.phone}">
+                <p><button class="btn" type="submit">Save</button></p>
+            </form>
+        </div>
+        <div class="card">
+            <h3>Address book</h3>
+            <p class="muted" th:if="${addresses.isEmpty()}">No saved addresses.</p>
+            <div th:each="a : ${addresses}" style="margin-bottom:.5rem">
+                <strong th:text="${a.label}"></strong>: <span th:text="${a.line}"></span>
+                <form class="inline" th:action="@{/buyer/addresses/{id}/delete(id=${a.id})}" method="post">
+                    <button class="btn sm danger" type="submit">Delete</button></form>
+            </div>
+            <form class="stack" th:action="@{/buyer/addresses}" method="post">
+                <input name="label" placeholder="Label (Home, Work…)" required maxlength="50">
+                <input name="line" placeholder="Full address" required maxlength="500" style="margin-top:.4rem">
+                <p><button class="btn" type="submit">Add address</button></p>
+            </form>
+        </div>
+        <div class="card">
+            <h3>Payment methods</h3>
+            <p class="muted">Store a label only (e.g. “Visa ending 4242”). Never enter full card numbers.</p>
+            <div th:each="p : ${payments}" style="margin-bottom:.5rem">
+                <span th:text="${p.label}"></span>
+                <form class="inline" th:action="@{/buyer/payments/{id}/delete(id=${p.id})}" method="post">
+                    <button class="btn sm danger" type="submit">Delete</button></form>
+            </div>
+            <form class="stack" th:action="@{/buyer/payments}" method="post">
+                <input name="label" placeholder="Visa ending 4242" required maxlength="100">
+                <p><button class="btn" type="submit">Add payment method</button></p>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

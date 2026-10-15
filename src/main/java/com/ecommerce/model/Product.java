@@ -1,27 +1,43 @@
 package com.ecommerce.model;
 
-import java.io.Serializable;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-public class Product implements Serializable {
-    private static final long serialVersionUID = 1L;
+@Entity
+@Getter @Setter @NoArgsConstructor
+public class Product {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    public final long id;
-    public long sellerId;
-    public String name;
-    public String description;
-    public BigDecimal price;
-    public int stock;
-    public int lowStockThreshold = 5;
-    public String category;
-    /** Soft-delete flag so past orders keep working. */
-    public boolean active = true;
+    @Column(nullable = false)
+    private String name;
 
-    public Product(long id, long sellerId, String name) {
-        this.id = id;
-        this.sellerId = sellerId;
-        this.name = name;
-    }
+    @Column(length = 2000)
+    private String description;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
+
+    private int stock;
+
+    private int lowStockThreshold = 5;
+
+    private String category;
+
+    private String imageUrl;
+
+    /** Soft-delete flag: removed products stay in the DB so past orders keep working. */
+    private boolean active = true;
+
+    @ManyToOne(optional = false)
+    private User seller;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public boolean isLowStock() {
         return stock <= lowStockThreshold;

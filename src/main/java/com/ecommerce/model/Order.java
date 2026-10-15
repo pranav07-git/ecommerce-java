@@ -1,34 +1,51 @@
 package com.ecommerce.model;
 
-import java.io.Serializable;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-public class Order implements Serializable {
-    private static final long serialVersionUID = 1L;
+@Entity
+@Table(name = "orders")
+@Getter @Setter @NoArgsConstructor
+public class Order {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    public final long id;
-    public final long buyerId;
-    public final List<OrderItem> items;
-    public final String shippingAddress;
-    public final String paymentMethod;
-    public final LocalDateTime createdAt = LocalDateTime.now();
-    public OrderStatus status = OrderStatus.PLACED;
+    @ManyToOne(optional = false)
+    private User buyer;
 
-    public Order(long id, long buyerId, List<OrderItem> items, String shippingAddress, String paymentMethod) {
-        this.id = id;
-        this.buyerId = buyerId;
-        this.items = items;
-        this.shippingAddress = shippingAddress;
-        this.paymentMethod = paymentMethod;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status = OrderStatus.PLACED;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal total = BigDecimal.ZERO;
+
+    private String shippingAddress;
+
+    private String paymentMethod;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
+
+    public void addItem(OrderItem item) {
+        item.setOrder(this);
+        items.add(item);
     }
 
-    public BigDecimal total() {
-        return items.stream().map(OrderItem::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+    public List<OrderItem> itemsOf(User seller) {
+        return items.stream().filter(i -> i.getProduct().getSeller().getId().equals(seller.getId())).toList();
     }
 
-    public List<OrderItem> itemsOf(long sellerId) {
-        return items.stream().filter(i -> i.sellerId() == sellerId).toList();
+    public BigDecimal totalFor(User seller) {
+        return itemsOf(seller).stream().map(OrderItem::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

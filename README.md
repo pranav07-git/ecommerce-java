@@ -1,49 +1,45 @@
-# ShopHub - console e-commerce in plain Java
+# ShopHub – multi-role e-commerce platform
 
-Terminal application using **only the JDK** (Java 17+): no frameworks, no build tool, no libraries.
+Spring Boot 3 / Java 17 · Thymeleaf · Spring Security · Spring Data JPA · H2 (file DB) · Chart.js
 
 ## Run
 
 ```bash
-./run.sh      # compile + start
-./test.sh     # compile + run the self-test (34 checks)
+./mvnw spring-boot:run        # then open http://localhost:8080
+./mvnw test                   # integration tests
 ```
 
-Or manually: `javac -d out $(find src/main -name '*.java') && java -cp out com.ecommerce.Main`
+Data persists in `./data/` (delete it to reset). Demo data is seeded on first start:
 
-Data is saved to `data/store.ser` after every change (delete the folder to reset). Demo data is created on first run:
+| Role   | Email             | Password  |
+|--------|-------------------|-----------|
+| Admin  | admin@shop.com    | admin123  |
+| Seller | seller@shop.com   | seller123 |
+| Seller | seller2@shop.com  | seller123 |
+| Buyer  | buyer@shop.com    | buyer123  |
 
-| Role   | Email            | Password  |
-|--------|------------------|-----------|
-| Admin  | admin@shop.com   | admin123  |
-| Seller | seller@shop.com  | seller123 |
-| Seller | seller2@shop.com | seller123 |
-| Buyer  | buyer@shop.com   | buyer123  |
-
-Buyers and sellers can register from the main menu; only admins can create admins.
+New buyers/sellers can self-register at `/register`; only admins can create admins.
 
 ## Features
 
-- **Admin:** list/create/edit/delete users and roles, list/add/edit/remove any product, list orders and update status, system activity log, and a live monitor that redraws every 2 s (Enter to exit).
-- **Seller:** own listings (add/edit/remove), inventory updates, low-stock alerts and bar chart, orders containing their products with status updates, sales performance (revenue by day, top products as text charts).
-- **Buyer:** search/filter/sort, product details, cart and checkout, order history and tracking timeline, cancel while `PLACED`, recently viewed, wishlist with price-change tracking, account (profile, address book, payment-method labels).
+**Admin** (`/admin`): user CRUD with roles (accounts that own products/orders are disabled rather than deleted), product CRUD for any seller, order list with status updates, live system-activity feed (polled every 3 s).
 
-Order flow: `PLACED -> PROCESSING -> SHIPPED -> DELIVERED`, or `CANCELLED` (restores stock). `DELIVERED` and `CANCELLED` are final.
+**Seller** (`/seller`): product listings (create/edit/delete), inventory updates with low-stock alerts and a stock chart, orders containing their products with status updates, sales reports (revenue by day, top products).
+
+**Buyer** (`/`, `/buyer`): search/filter/sort products, cart and checkout (stock validated and decremented), order tracking with status timeline and cancellation (while `PLACED`), recently viewed products, wishlist with price-change tracking, profile, address book and payment-method labels.
+
+Order flow: `PLACED → PROCESSING → SHIPPED → DELIVERED` (or `CANCELLED`, which restores stock). `DELIVERED`/`CANCELLED` are final.
 
 ## Layout
 
 ```
-src/main/java/com/ecommerce/
-  Main.java      login / register loop
-  model/         entities + Store (serialisable data holder)
-  service/       Shop (all business rules), Seeder, SellerReport
-  ui/            Console helpers, AdminMenu, SellerMenu, BuyerMenu
-src/test/java/com/ecommerce/SelfTest.java
+model/    JPA entities            service/  business rules + activity log
+repo/     Spring Data repos       web/      controllers, forms, session cart
+config/   security + data seeder  templates/ Thymeleaf pages per role
 ```
 
 ## Notes
 
-- Passwords are stored as salted SHA-256 hashes.
-- Removing a product is a soft delete, and deleting a user who has products or orders disables the account, so order history stays intact.
-- Placing an order is all-or-nothing: stock is checked for every item before anything changes.
-- Payment methods are display labels only; there is no payment gateway. Never enter real card numbers.
+- Removing a product is a soft delete so past orders stay intact.
+- Payment methods store a display label only; there is no real payment gateway.
+- To use another database, change `spring.datasource.*` in `application.properties` and add the driver.

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Seller dashboard')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1>Seller dashboard</h1>
+    <div class="stats">
+        <div class="stat"><div class="n" th:text="'$' + ${#numbers.formatDecimal(report.revenue, 1, 2)}"></div><div class="l">Revenue</div></div>
+        <div class="stat"><div class="n" th:text="${report.unitsSold}"></div><div class="l">Units sold</div></div>
+        <div class="stat"><div class="n" th:text="${report.orderCount}"></div><div class="l">Orders</div></div>
+        <div class="stat"><div class="n" th:text="${products.size()}"></div><div class="l">Active listings</div></div>
+        <div class="stat"><div class="n" th:text="${lowStock.size()}" th:classappend="${lowStock.isEmpty()} ? '' : 'up'"></div><div class="l">Low-stock alerts</div></div>
+    </div>
+
+    <div class="flash err" th:unless="${lowStock.isEmpty()}">
+        ⚠ Low stock:
+        <span th:each="p, st : ${lowStock}"><strong th:text="${p.name}"></strong> (<span th:text="${p.stock}"></span>)<span th:unless="${st.last}">, </span></span>
+    </div>
+
+    <div class="section-head"><h2 id="products">Product listings</h2><a class="btn" th:href="@{/seller/products/new}">+ List product</a></div>
+    <p class="muted" th:if="${products.isEmpty()}">You have no products yet.</p>
+    <div class="table-wrap" th:unless="${products.isEmpty()}"><table id="inventory">
+        <tr><th>Name</th><th>Category</th><th>Price</th><th>Stock (update)</th><th>Actions</th></tr>
+        <tr th:each="p : ${products}">
+            <td><a th:href="@{/products/{id}(id=${p.id})}" th:text="${p.name}"></a>
+                <span class="badge low" th:if="${p.lowStock}">LOW</span></td>
+            <td th:text="${p.category}"></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(p.price, 1, 2)}"></td>
+            <td><form class="inline" th:action="@{/seller/products/{id}/stock(id=${p.id})}" method="post">
+                <input type="number" name="stock" th:value="${p.stock}" min="0" required>
+                <button class="btn sm" type="submit">Set</button></form></td>
+            <td>
+                <a class="btn sm ghost" th:href="@{/seller/products/{id}/edit(id=${p.id})}">Edit</a>
+                <form class="inline" th:action="@{/seller/products/{id}/delete(id=${p.id})}" method="post">
+                    <button class="btn sm danger" type="submit" onclick="return confirm('Delete this product?')">Delete</button></form>
+            </td>
+        </tr>
+    </table></div>
+
+    <h2 id="orders">Orders for my products</h2>
+    <p class="muted" th:if="${orders.isEmpty()}">No orders yet.</p>
+    <div class="table-wrap" th:unless="${orders.isEmpty()}"><table>
+        <tr><th>Order</th><th>Date</th><th>Buyer</th><th>My items</th><th>My total</th><th>Ship to</th><th>Status</th><th>Update</th></tr>
+        <tr th:each="o : ${orders}">
+            <td th:text="'#' + ${o.id}"></td>
+            <td th:text="${#temporals.format(o.createdAt, 'dd MMM HH:mm')}"></td>
+            <td th:text="${o.buyer.name}"></td>
+            <td><div th:each="i : ${o.itemsOf(user)}" th:text="${i.quantity} + ' × ' + ${i.product.name}"></div></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(o.totalFor(user), 1, 2)}"></td>
+            <td th:text="${o.shippingAddress}"></td>
+            <td><span class="badge" th:classappend="${o.status}" th:text="${o.status}"></span></td>
+            <td>
+                <form class="inline" th:unless="${o.status.final}" th:action="@{/seller/orders/{id}/status(id=${o.id})}" method="post">
+                    <select name="status">
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == o.status}"></option>
+                    </select>
+                    <button class="btn sm" type="submit">Save</button>
+                </form>
+            </td>
+        </tr>
+    </table></div>
+
+    <div class="two-col">
+        <div class="card"><h3>Inventory levels</h3><div class="chart-box"><canvas id="invChart"></canvas></div>
+            <p class="muted" th:if="${products.isEmpty()}">No data.</p></div>
+        <div class="card"><h3>Revenue by day</h3><div class="chart-box"><canvas id="salesChart"></canvas></div>
+            <p class="muted" th:if="${report.days.isEmpty()}">No sales yet.</p></div>
+        <div class="card"><h3>Top products (units sold)</h3><div class="chart-box"><canvas id="topChart"></canvas></div>
+            <p class="muted" th:if="${report.topNames.isEmpty()}">No sales yet.</p></div>
+    </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script th:inline="javascript">
+    const names = /*[[${invNames}]]*/ [], stock = /*[[${invStock}]]*/ [], low = /*[[${invLow}]]*/ [];
+    const days = /*[[${report.days}]]*/ [], rev = /*[[${report.revenueByDay}]]*/ [];
+    const topN = /*[[${report.topNames}]]*/ [], topU = /*[[${report.topUnits}]]*/ [];
+    const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } };
+    if (typeof Chart !== 'undefined') {
+        new Chart(document.getElementById('invChart'), { type: 'bar', options: opts,
+            data: { labels: names, datasets: [{ data: stock, backgroundColor: stock.map((s, i) => s <= low[i] ? '#dc2626' : '#2563eb') }] } });
+        new Chart(document.getElementById('salesChart'), { type: 'line', options: opts,
+            data: { labels: days, datasets: [{ data: rev, borderColor: '#16a34a', backgroundColor: '#16a34a33', fill: true, tension: .25 }] } });
+        new Chart(document.getElementById('topChart'), { type: 'bar', options: opts,
+            data: { labels: topN, datasets: [{ data: topU, backgroundColor: '#7c3aed' }] } });
+    }
+</script>
+</body>
+</html>

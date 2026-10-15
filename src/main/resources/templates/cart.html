@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cart')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1>Your cart</h1>
+    <p class="muted" th:if="${lines.isEmpty()}">Your cart is empty. <a th:href="@{/}">Keep shopping</a></p>
+    <div th:unless="${lines.isEmpty()}">
+        <div class="table-wrap"><table>
+            <tr><th>Product</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr>
+            <tr th:each="l : ${lines}">
+                <td><a th:href="@{/products/{id}(id=${l.product.id})}" th:text="${l.product.name}"></a></td>
+                <td th:text="'$' + ${#numbers.formatDecimal(l.product.price, 1, 2)}"></td>
+                <td>
+                    <form class="inline" th:action="@{/cart/update}" method="post">
+                        <input type="hidden" name="productId" th:value="${l.product.id}">
+                        <input type="number" name="qty" th:value="${l.quantity}" min="0" th:max="${l.product.stock}">
+                        <button class="btn sm ghost" type="submit">Update</button>
+                    </form>
+                </td>
+                <td th:text="'$' + ${#numbers.formatDecimal(l.subtotal(), 1, 2)}"></td>
+                <td><form class="inline" th:action="@{/cart/remove}" method="post">
+                    <input type="hidden" name="productId" th:value="${l.product.id}">
+                    <button class="btn sm danger" type="submit">Remove</button></form></td>
+            </tr>
+            <tr><th colspan="3" style="text-align:right">Total</th><th th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}"></th><th></th></tr>
+        </table></div>
+
+        <div class="card">
+            <h2>Checkout</h2>
+            <form class="stack" th:action="@{/checkout}" method="post">
+                <label>Shipping address</label>
+                <select onchange="document.getElementById('addr').value=this.value" th:if="${!addresses.isEmpty()}">
+                    <option value="">Choose a saved address…</option>
+                    <option th:each="a : ${addresses}" th:value="${a.line}" th:text="${a.label} + ' — ' + ${a.line}"></option>
+                </select>
+                <input id="addr" name="shippingAddress" placeholder="Street, city, postal code" required maxlength="500" style="margin-top:.4rem">
+                <label>Payment method</label>
+                <select name="payment">
+                    <option value="Cash on Delivery">Cash on Delivery</option>
+                    <option th:each="p : ${payments}" th:value="${p.label}" th:text="${p.label}"></option>
+                </select>
+                <p><button class="btn ok" type="submit">Place order</button></p>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

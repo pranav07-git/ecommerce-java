@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Order')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <a th:href="@{/buyer}">← My account</a>
+    <div class="card" style="margin-top:.8rem">
+        <h1>Order #<span th:text="${order.id}"></span> <span class="badge" th:classappend="${order.status}" th:text="${order.status}"></span></h1>
+        <p class="muted">Placed <span th:text="${#temporals.format(order.createdAt, 'dd MMM yyyy HH:mm')}"></span>
+            · Ship to: <span th:text="${order.shippingAddress}"></span> · Payment: <span th:text="${order.paymentMethod}"></span></p>
+
+        <div class="timeline" th:if="${order.status.name() != 'CANCELLED'}">
+            <div class="step" th:each="s : ${steps}" th:text="${s}"
+                 th:classappend="${s.ordinal() < order.status.ordinal()} ? 'done' : (${s == order.status} ? 'current' : '')"></div>
+        </div>
+        <p th:if="${order.status.name() == 'CANCELLED'}" class="error">This order was cancelled.</p>
+
+        <div class="table-wrap"><table>
+            <tr><th>Product</th><th>Qty</th><th>Unit price</th><th>Subtotal</th></tr>
+            <tr th:each="i : ${order.items}">
+                <td th:text="${i.product.name}"></td><td th:text="${i.quantity}"></td>
+                <td th:text="'$' + ${#numbers.formatDecimal(i.unitPrice, 1, 2)}"></td>
+                <td th:text="'$' + ${#numbers.formatDecimal(i.subtotal, 1, 2)}"></td>
+            </tr>
+            <tr><th colspan="3" style="text-align:right">Total</th><th th:text="'$' + ${#numbers.formatDecimal(order.total, 1, 2)}"></th></tr>
+        </table></div>
+        <form th:if="${order.status.name() == 'PLACED'}" th:action="@{/buyer/orders/{id}/cancel(id=${order.id})}" method="post">
+            <button class="btn danger" type="submit" onclick="return confirm('Cancel this order?')">Cancel order</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

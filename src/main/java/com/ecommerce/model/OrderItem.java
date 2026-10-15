@@ -1,13 +1,31 @@
 package com.ecommerce.model;
 
-import java.io.Serializable;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
-/** Snapshot of a purchased product (name and price as at purchase time). */
-public record OrderItem(long productId, long sellerId, String productName, int quantity, BigDecimal unitPrice)
-        implements Serializable {
+@Entity
+@Getter @Setter @NoArgsConstructor
+public class OrderItem {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    public BigDecimal subtotal() {
+    @ManyToOne(optional = false)
+    private Order order;
+
+    @ManyToOne(optional = false)
+    private Product product;
+
+    private int quantity;
+
+    /** Price at the time of purchase. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unitPrice;
+
+    public BigDecimal getSubtotal() {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 }

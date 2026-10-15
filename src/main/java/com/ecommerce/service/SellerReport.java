@@ -1,9 +1,9 @@
 package com.ecommerce.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Map;
+import java.util.List;
 
 public record SellerReport(BigDecimal revenue, int unitsSold, int orderCount,
-                           Map<LocalDate, BigDecimal> revenueByDay, Map<String, Integer> topProducts) {
+                           List<String> days, List<BigDecimal> revenueByDay,
+                           List<String> topNames, List<Integer> topUnits) {
 }

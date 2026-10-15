@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · ShopHub'">ShopHub</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<nav class="top" th:fragment="nav">
+    <a class="brand" th:href="@{/}">🛒 ShopHub</a>
+    <a th:href="@{/}">Shop</a>
+    <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin dashboard</a>
+    <a sec:authorize="hasRole('SELLER')" th:href="@{/seller}">Seller dashboard</a>
+    <a sec:authorize="hasRole('BUYER')" th:href="@{/buyer}">My account</a>
+    <span class="spacer"></span>
+    <a sec:authorize="hasRole('BUYER')" th:href="@{/cart}">Cart (<span th:text="${@cart.count()}">0</span>)</a>
+    <span sec:authorize="isAuthenticated()">
+        <span class="muted" style="color:#9ca3af" sec:authentication="name">user</span>
+    </span>
+    <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post">
+        <button class="btn sm ghost" type="submit">Logout</button>
+    </form>
+    <a sec:authorize="!isAuthenticated()" th:href="@{/login}">Login</a>
+    <a sec:authorize="!isAuthenticated()" th:href="@{/register}">Register</a>
+</nav>
+<div th:fragment="flash">
+    <div class="flash ok" th:if="${message}" th:text="${message}"></div>
+    <div class="flash err" th:if="${error}" th:text="${error}"></div>
+</div>
+</body>
+</html>

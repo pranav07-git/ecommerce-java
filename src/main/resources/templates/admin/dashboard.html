@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Admin dashboard')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1>Admin dashboard</h1>
+    <div class="stats">
+        <div class="stat"><div class="n" th:text="${users.size()}"></div><div class="l">Users</div></div>
+        <div class="stat"><div class="n" th:text="${products.size()}"></div><div class="l">Active products</div></div>
+        <div class="stat"><div class="n" th:text="${orders.size()}"></div><div class="l">Orders</div></div>
+    </div>
+
+    <h2>System activity <span class="muted">(live)</span></h2>
+    <div class="card"><div class="feed" id="feed">Loading…</div></div>
+
+    <div class="section-head"><h2 id="users">User management</h2><a class="btn" th:href="@{/admin/users/new}">+ Add user</a></div>
+    <div class="table-wrap"><table>
+        <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+        <tr th:each="u : ${users}">
+            <td th:text="${u.id}"></td><td th:text="${u.name}"></td><td th:text="${u.email}"></td>
+            <td><span class="badge" th:classappend="${u.role}" th:text="${u.role}"></span></td>
+            <td><span class="badge off" th:unless="${u.enabled}">Disabled</span><span th:if="${u.enabled}">Active</span></td>
+            <td>
+                <a class="btn sm ghost" th:href="@{/admin/users/{id}/edit(id=${u.id})}">Edit</a>
+                <form class="inline" th:if="${u.id != me.id}" th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post">
+                    <button class="btn sm danger" type="submit" onclick="return confirm('Delete this user?')">Delete</button></form>
+            </td>
+        </tr>
+    </table></div>
+
+    <div class="section-head"><h2 id="products">Product management</h2><a class="btn" th:href="@{/admin/products/new}">+ Add product</a></div>
+    <div class="table-wrap"><table>
+        <tr><th>ID</th><th>Name</th><th>Seller</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+        <tr th:each="p : ${products}">
+            <td th:text="${p.id}"></td>
+            <td><a th:href="@{/products/{id}(id=${p.id})}" th:text="${p.name}"></a></td>
+            <td th:text="${p.seller.name}"></td><td th:text="${p.category}"></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(p.price, 1, 2)}"></td>
+            <td><span th:text="${p.stock}"></span> <span class="badge low" th:if="${p.lowStock}">LOW</span></td>
+            <td>
+                <a class="btn sm ghost" th:href="@{/admin/products/{id}/edit(id=${p.id})}">Edit</a>
+                <form class="inline" th:action="@{/admin/products/{id}/delete(id=${p.id})}" method="post">
+                    <button class="btn sm danger" type="submit" onclick="return confirm('Remove this product?')">Remove</button></form>
+            </td>
+        </tr>
+    </table></div>
+
+    <h2 id="orders">Order management</h2>
+    <p class="muted" th:if="${orders.isEmpty()}">No orders yet.</p>
+    <div class="table-wrap" th:unless="${orders.isEmpty()}"><table>
+        <tr><th>Order</th><th>Date</th><th>Buyer</th><th>Items</th><th>Total</th><th>Status</th><th>Update / fulfil</th></tr>
+        <tr th:each="o : ${orders}">
+            <td th:text="'#' + ${o.id}"></td>
+            <td th:text="${#temporals.format(o.createdAt, 'dd MMM HH:mm')}"></td>
+            <td th:text="${o.buyer.email}"></td>
+            <td><div th:each="i : ${o.items}" th:text="${i.quantity} + ' × ' + ${i.product.name}"></div></td>
+            <td th:text="'$' + ${#numbers.formatDecimal(o.total, 1, 2)}"></td>
+            <td><span class="badge" th:classappend="${o.status}" th:text="${o.status}"></span></td>
+            <td>
+                <form class="inline" th:unless="${o.status.final}" th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post">
+                    <select name="status">
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == o.status}"></option>
+                    </select>
+                    <button class="btn sm" type="submit">Save</button>
+                </form>
+            </td>
+        </tr>
+    </table></div>
+</main>
+<script th:inline="javascript">
+    const feedUrl = /*[[@{/admin/activity}]]*/ '/admin/activity';
+    const feed = document.getElementById('feed');
+    async function refresh() {
+        try {
+            const res = await fetch(feedUrl, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return;
+            const items = await res.json();
+            feed.replaceChildren(...items.map(a => {
+                const d = document.createElement('div');
+                d.textContent = `[${a.time}] ${a.actor}: ${a.message}`;   // textContent: no HTML injection
+                return d;
+            }));
+        } catch (e) { /* retry on next tick */ }
+    }
+    refresh();
+    setInterval(refresh, 3000);
+</script>
+</body>
+</html>
